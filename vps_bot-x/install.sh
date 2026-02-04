@@ -1,6 +1,6 @@
 #!/bin/bash
 # VPS 遥控器 (Sentinel-X) 安装向导
-# 版本: V6.6
+# 版本: V6.7 (优化面板状态显示)
 
 # 定义颜色
 GREEN='\033[0;32m'
@@ -11,7 +11,7 @@ NC='\033[0m'
 
 clear
 echo -e "${SKY}==============================================${NC}"
-echo -e "     VPS 遥控器 (Sentinel-X) 安装向导 V6.6 作者:thex    "
+echo -e "     VPS 遥控器 (Sentinel-X) 安装向导 V6.7 作者:thex    "
 echo -e "${SKY}==============================================${NC}"
 echo ""
 
@@ -77,7 +77,7 @@ else
     echo -e "${GREEN}    ✓ 目标目录已有代码，执行增量更新${NC}"
 fi
 
-# 安装依赖 (允许打破系统包管理限制，适用于 VPS 环境)
+# 安装依赖
 pip3 install python-telegram-bot psutil requests netifaces schedule --break-system-packages > /dev/null 2>&1
 
 echo -e "${GREEN}>>> [4/6] 配置初始化...${NC}"
@@ -138,27 +138,41 @@ systemctl restart vpsbot
 
 echo -e "${GREEN}>>> [6/6] 安装快捷指令 'kk'...${NC}"
 
+# 🔥🔥🔥 重点修改部分：kk 脚本逻辑优化 🔥🔥🔥
 cat > /usr/bin/kk <<EOFKK
 #!/bin/bash
 while true; do
     clear
+    # 获取实时状态
+    if systemctl is-active --quiet vpsbot; then
+        STATUS_TEXT="\033[0;32m● 运行中 (Running)\033[0m"
+    else
+        STATUS_TEXT="\033[0;31m● 已停止 (Stopped)\033[0m"
+    fi
+
     echo -e "\033[0;36m==============================\033[0m"
-    echo -e "     VPS 遥控器-X 控制台 作者:thex       "
+    echo -e "     VPS 遥控器-X 控制台 作者:thex        "
+    echo -e "     当前状态: \${STATUS_TEXT}"
     echo -e "\033[0;36m==============================\033[0m"
     echo -e "  [1] 启动  [2] 重启  [3] 停止"
     echo -e "  [4] 日志  [5] 配置  [0] 退出"
     echo -e "  [6] 更新代码"
     read -p "请选择: " choice
     case \$choice in
-        1) systemctl start vpsbot ;;
-        2) systemctl restart vpsbot ;;
-        3) systemctl stop vpsbot ;;
+        1) systemctl start vpsbot; echo "正在启动..." ;;
+        2) systemctl restart vpsbot; echo "正在重启..." ;;
+        3) systemctl stop vpsbot; echo "正在停止..." ;;
         4) journalctl -u vpsbot -f -n 50 ;;
         5) nano /root/sentinel_config.json ;;
         6) bash <(curl -fsSL https://raw.githubusercontent.com/MEILOI/VPS_BOT_X/main/vps_bot-x/install.sh) ;;
         0) exit 0 ;;
+        *) echo "无效选择" ;;
     esac
-    read -p "按回车继续..."
+    
+    # 只有非日志、非退出操作时才暂停，为了让用户看到操作结果，并刷新状态
+    if [[ "\$choice" != "4" && "\$choice" != "6" && "\$choice" != "0" ]]; then
+        sleep 1
+    fi
 done
 EOFKK
 
