@@ -5,7 +5,7 @@ from datetime import datetime
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes
 
-UPLOAD_DIR = "/home/vboxuser/公共/uploads"
+UPLOAD_DIR = "/var/lib/vps_bot/uploads"  # 上传文件目录
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 from config import TOKEN, ALLOWED_USER_ID, ALLOWED_USER_IDS, load_config, save_config, load_ports, save_ports, SSH_FILE
@@ -132,13 +132,176 @@ async def kk_command(u: Update, c: ContextTypes.DEFAULT_TYPE):
     if u.effective_user.id not in ALLOWED_USER_IDS: 
         return
     
-    txt = f"🕹️ <b>KK 远程控制台</b>\n━━━━━━━━━━━━━━━\n✅ 状态: 运行中 (PID: <code>{os.getpid()}</code>)"
+    # 获取当前命令前缀
+    from config import load_config
+    conf = load_config()
+    command_prefix = conf.get('command_prefix', 'kk')
+    
+    txt = f"🕹️ <b>{command_prefix.upper()} 远程控制台</b>\n━━━━━━━━━━━━━━━\n✅ 状态: 运行中 (PID: <code>{os.getpid()}</code>)"
     kb = [
         [InlineKeyboardButton("🏠 进入主页", callback_data="back")], 
         [InlineKeyboardButton("🔄 重启机器人", callback_data="sys_restart_bot")],
         [InlineKeyboardButton("📜 获取日志", callback_data="sys_get_log")]
     ]
     await u.message.reply_text(txt, reply_markup=InlineKeyboardMarkup(kb), parse_mode="HTML")
+
+async def settoken_command(u: Update, c: ContextTypes.DEFAULT_TYPE):
+    """直接设置TG Token命令"""
+    if u.effective_user.id not in ALLOWED_USER_IDS: 
+        return
+    
+    # 获取当前token
+    from config import load_config
+    conf = load_config()
+    current_token = conf.get('bot_token', '未设置')
+    
+    # 检查是否有参数
+    args = u.message.text.split()
+    if len(args) < 2:
+        await u.message.reply_text(
+            f"🤖 <b>当前TG对接键</b>: <code>{current_token[:10]}...</code>\n\n"
+            f"📝 <b>用法</b>: <code>/settoken 新Token</code>\n"
+            f"💡 <b>格式</b>: <code>数字:字母数字组合</code>\n\n"
+            f"⚠️ <b>注意</b>: 修改后需要重启机器人才能生效",
+            parse_mode="HTML"
+        )
+        return
+    
+    new_token = args[1].strip()
+    import re
+    if not re.match(r'^\d+:[A-Za-z0-9_-]+$', new_token):
+        await u.message.reply_text(
+            "❌ <b>Token 格式错误</b>\n\n"
+            "应为 '数字:字母数字组合' 格式，例如:\n"
+            "<code>1234567890:ABCdefGHIjklMNOpqrSTUvwxYZ</code>",
+            parse_mode="HTML"
+        )
+        return
+    
+    # 更新配置
+    conf['bot_token'] = new_token
+    from config import save_config
+    save_config(conf)
+    
+    # 获取当前命令前缀
+    from config import load_config
+    conf = load_config()
+    command_prefix = conf.get('command_prefix', 'kk')
+    
+    await u.message.reply_text(
+        f"✅ <b>TG对接键已更新</b>\n\n"
+        f"新Token: <code>{new_token[:10]}...</code>\n\n"
+        f"⚠️ <b>需要重启机器人才能生效</b>\n"
+        f"请使用 /{command_prefix} 菜单中的 '🔄 重启机器人' 按钮",
+        parse_mode="HTML"
+    )
+
+async def setadminid_command(u: Update, c: ContextTypes.DEFAULT_TYPE):
+    """直接设置管理员ID命令"""
+    if u.effective_user.id not in ALLOWED_USER_IDS: 
+        return
+    
+    # 获取当前admin id
+    from config import load_config
+    conf = load_config()
+    current_admin_id = conf.get('admin_id', '未设置')
+    
+    # 检查是否有参数
+    args = u.message.text.split()
+    if len(args) < 2:
+        await u.message.reply_text(
+            f"👤 <b>当前管理员ID</b>: <code>{current_admin_id}</code>\n\n"
+            f"📝 <b>用法</b>: <code>/setadminid 新管理员ID</code>\n"
+            f"💡 <b>格式</b>: 纯数字 (例如: 123456789)\n"
+            f"💡 <b>如何获取</b>: 在 Telegram 中发送 /id 给 @userinfobot\n\n"
+            f"⚠️ <b>注意</b>: 修改后需要重启机器人才能生效",
+            parse_mode="HTML"
+        )
+        return
+    
+    new_admin_id = args[1].strip()
+    import re
+    if not re.match(r'^\d+$', new_admin_id):
+        await u.message.reply_text(
+            "❌ <b>格式错误</b>\n\n"
+            "管理员ID应为纯数字，例如:\n"
+            "<code>123456789</code>",
+            parse_mode="HTML"
+        )
+        return
+    
+    # 更新配置
+    conf['admin_id'] = int(new_admin_id)
+    from config import save_config
+    save_config(conf)
+    
+    # 获取当前命令前缀
+    from config import load_config
+    conf = load_config()
+    command_prefix = conf.get('command_prefix', 'kk')
+    
+    await u.message.reply_text(
+        f"✅ <b>管理员ID已更新</b>\n\n"
+        f"新管理员ID: <code>{new_admin_id}</code>\n\n"
+        f"⚠️ <b>需要重启机器人才能生效</b>\n"
+        f"请使用 /{command_prefix} 菜单中的 '🔄 重启机器人' 按钮",
+        parse_mode="HTML"
+    )
+
+async def setprefix_command(u: Update, c: ContextTypes.DEFAULT_TYPE):
+    """直接设置命令前缀命令"""
+    if u.effective_user.id not in ALLOWED_USER_IDS: 
+        return
+    
+    # 获取当前前缀
+    from config import load_config
+    conf = load_config()
+    current_prefix = conf.get('command_prefix', 'kk')
+    
+    # 检查是否有参数
+    args = u.message.text.split()
+    if len(args) < 2:
+        await u.message.reply_text(
+            f"🔤 <b>当前命令前缀</b>: <code>{current_prefix}</code>\n"
+            f"📝 <b>当前命令</b>: <code>/{current_prefix}</code>\n\n"
+            f"📝 <b>用法</b>: <code>/setprefix 新前缀</code>\n"
+            f"💡 <b>格式</b>: 小写字母、数字、下划线 (3-20字符)\n"
+            f"📝 <b>示例</b>: <code>vps1</code> → 命令变为 <code>/vps1</code>\n\n"
+            f"⚠️ <b>重要提示</b>:\n"
+            f"• 修改后需要重启机器人才能生效\n"
+            f"• 如果一BOT管理多VPS，请为每个VPS设置不同前缀\n"
+            f"• 避免使用特殊字符或空格",
+            parse_mode="HTML"
+        )
+        return
+    
+    new_prefix = args[1].strip().lower()
+    import re
+    if not re.match(r'^[a-z0-9_]{3,20}$', new_prefix):
+        await u.message.reply_text(
+            "❌ <b>格式错误</b>\n\n"
+            "前缀应为小写字母、数字、下划线，3-20字符\n"
+            "例如: <code>vps1</code>, <code>server_a</code>, <code>mybot123</code>",
+            parse_mode="HTML"
+        )
+        return
+    
+    # 更新配置
+    conf['command_prefix'] = new_prefix
+    from config import save_config
+    save_config(conf)
+    
+    await u.message.reply_text(
+        f"✅ <b>命令前缀已更新</b>\n\n"
+        f"新前缀: <code>{new_prefix}</code>\n"
+        f"新命令: <code>/{new_prefix}</code>\n\n"
+        f"⚠️ <b>重要提示</b>:\n"
+        f"• 需要重启机器人才能生效\n"
+        f"• 如果一BOT管理多VPS，请为每个VPS设置不同前缀\n"
+        f"• 旧命令 <code>/kk</code> 将失效\n\n"
+        f"请使用 <code>/{new_prefix}</code> 菜单中的 '🔄 重启机器人' 按钮",
+        parse_mode="HTML"
+    )
 
 # --- 📝 文本处理 ---
 async def text_handler(u: Update, c: ContextTypes.DEFAULT_TYPE):
@@ -1022,10 +1185,28 @@ async def post_init(application: Application) -> None:
 if __name__ == "__main__":
     net.init_default_networks()
     app = Application.builder().token(TOKEN).post_init(post_init).build()
-    app.add_handler(CommandHandler("b", start))
-    app.add_handler(CommandHandler("kk", kk_command))
+    
+    # 读取配置获取命令前缀
+    from config import load_config
+    conf = load_config()
+    command_prefix = conf.get('command_prefix', 'kk')
+    
+    # 注册命令
+    app.add_handler(CommandHandler("b", start))  # 保持 /b 不变以向后兼容
+    app.add_handler(CommandHandler(command_prefix, kk_command))  # 使用配置的前缀
+    app.add_handler(CommandHandler("settoken", settoken_command))
+    app.add_handler(CommandHandler("setadminid", setadminid_command))
+    app.add_handler(CommandHandler("setprefix", setprefix_command))
+    
+    # 如果前缀不是默认的 'kk'，也注册 /kk 作为别名以保持兼容性
+    if command_prefix != "kk":
+        app.add_handler(CommandHandler("kk", kk_command))
+        print(f"⚠️  注意: 命令前缀已设置为 '{command_prefix}'，但 /kk 仍可用作别名")
+    
     app.add_handler(CallbackQueryHandler(btn_handler))
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), text_handler))
     app.add_handler(MessageHandler(filters.Document.ALL, document_handler))
+    
     print(f"✅ VPS Bot V6.3-X 启动成功")
+    print(f"📝 控制台命令: /{command_prefix} (原 /kk)")
     app.run_polling()

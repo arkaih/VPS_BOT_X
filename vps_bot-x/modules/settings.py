@@ -118,6 +118,9 @@ def get_menu():
         [InlineKeyboardButton(f"🔧 流量校准 (当前:{curr_tf:.1f}G)", callback_data="set_calib")],
         [InlineKeyboardButton(f"🚨 日预警: {conf.get('daily_warn_gb', 50)}GB", callback_data="set_dw")],
         [InlineKeyboardButton(f"📅 结算日: {conf.get('billing_day', 1)}号", callback_data="set_day")],
+        [InlineKeyboardButton("🤖 修改TG对接键", callback_data="set_tg_token")],
+        [InlineKeyboardButton(f"👤 修改管理员ID ({conf.get('admin_id', '未设置')})", callback_data="set_admin_id")],
+        [InlineKeyboardButton(f"🔤 修改命令前缀 ({conf.get('command_prefix', 'kk')})", callback_data="set_command_prefix")],
         [InlineKeyboardButton("🔙 返回主菜单", callback_data="back")]
     ]
     
@@ -145,7 +148,35 @@ def get_prompt_text(action):
         
         "set_dw": "🚨 <b>修改日流量预警</b>\n\n请输入单日触发警报的流量值 (GB):",
         
-        "set_day": "📅 <b>修改结算日</b>\n\n请输入每月流量清零的日期 (1-31):"
+        "set_day": "📅 <b>修改结算日</b>\n\n请输入每月流量清零的日期 (1-31):",
+        
+        "set_tg_token": (
+            "🤖 <b>修改TG对接键</b>\n\n"
+            "请输入新的 Telegram Bot Token:\n\n"
+            "💡 <b>格式</b>: <code>数字:字母数字组合</code>\n"
+            "📝 <b>示例</b>: <code>1234567890:ABCdefGHIjklMNOpqrSTUvwxYZ</code>\n\n"
+            "⚠️ <b>注意</b>: 修改后需要重启机器人才能生效"
+        ),
+        
+        "set_admin_id": (
+            "👤 <b>修改管理员ID</b>\n\n"
+            "请输入新的管理员 Telegram User ID:\n\n"
+            "💡 <b>如何获取</b>: 在 Telegram 中发送 /id 给 @userinfobot\n"
+            "📝 <b>格式</b>: 纯数字 (例如: 123456789)\n\n"
+            "⚠️ <b>注意</b>: 修改后需要重启机器人才能生效"
+        ),
+        
+        "set_command_prefix": (
+            "🔤 <b>修改命令前缀</b>\n\n"
+            "请输入新的命令前缀 (用于 /kk 命令):\n\n"
+            "💡 <b>当前前缀</b>: <code>{}</code>\n"
+            "📝 <b>格式</b>: 小写字母、数字、下划线 (3-20字符)\n"
+            "📝 <b>示例</b>: <code>vps1</code> → 命令变为 <code>/vps1</code>\n\n"
+            "⚠️ <b>重要提示</b>:\n"
+            "• 修改后需要重启机器人才能生效\n"
+            "• 如果一BOT管理多VPS，请为每个VPS设置不同前缀\n"
+            "• 避免使用特殊字符或空格"
+        ).format(conf.get('command_prefix', 'kk'))
     }
     return prompts.get(action, "⚠️ 未知操作项")
 
@@ -188,6 +219,67 @@ def update_setting(action, value):
             if day < 1 or day > 31:
                 return "❌ 错误: 日期必须在 1-31 之间", get_menu()
             conf['billing_day'] = day
+            
+        elif action == "set_tg_token":
+            # TG Bot Token 修改
+            token = str(value).strip()
+            # 验证格式: 数字:字母数字组合
+            import re
+            if not re.match(r'^\d+:[A-Za-z0-9_-]+$', token):
+                return "❌ 错误: Token 格式不正确，应为 '数字:字母数字组合' 格式", get_menu()
+            conf['bot_token'] = token
+            # 保存配置后需要重启机器人
+            save_config(conf)
+            # 返回特殊消息提示需要重启
+            # 获取当前命令前缀
+            command_prefix = conf.get('command_prefix', 'kk')
+            return (
+                f"✅ <b>TG对接键已更新</b>\n\n"
+                f"新Token: <code>{token[:10]}...</code>\n\n"
+                f"⚠️ <b>需要重启机器人才能生效</b>\n"
+                f"请使用 /{command_prefix} 菜单中的 '🔄 重启机器人' 按钮"
+            ), get_menu()
+            
+        elif action == "set_admin_id":
+            # 管理员ID修改
+            admin_id = str(value).strip()
+            # 验证格式: 纯数字
+            import re
+            if not re.match(r'^\d+$', admin_id):
+                return "❌ 错误: 管理员ID应为纯数字", get_menu()
+            conf['admin_id'] = int(admin_id)
+            # 保存配置后需要重启机器人
+            save_config(conf)
+            # 返回特殊消息提示需要重启
+            # 获取当前命令前缀
+            command_prefix = conf.get('command_prefix', 'kk')
+            return (
+                f"✅ <b>管理员ID已更新</b>\n\n"
+                f"新管理员ID: <code>{admin_id}</code>\n\n"
+                f"⚠️ <b>需要重启机器人才能生效</b>\n"
+                f"请使用 /{command_prefix} 菜单中的 '🔄 重启机器人' 按钮"
+            ), get_menu()
+            
+        elif action == "set_command_prefix":
+            # 命令前缀修改
+            prefix = str(value).strip().lower()
+            # 验证格式: 小写字母、数字、下划线，3-20字符
+            import re
+            if not re.match(r'^[a-z0-9_]{3,20}$', prefix):
+                return "❌ 错误: 前缀应为小写字母、数字、下划线，3-20字符", get_menu()
+            conf['command_prefix'] = prefix
+            # 保存配置后需要重启机器人
+            save_config(conf)
+            # 返回特殊消息提示需要重启
+            return (
+                f"✅ <b>命令前缀已更新</b>\n\n"
+                f"新前缀: <code>{prefix}</code>\n"
+                f"新命令: <code>/{prefix}</code>\n\n"
+                f"⚠️ <b>重要提示</b>:\n"
+                f"• 需要重启机器人才能生效\n"
+                f"• 如果一BOT管理多VPS，请为每个VPS设置不同前缀\n"
+                f"• 旧命令 <code>/kk</code> 将失效"
+            ), get_menu()
             
         elif action == "set_calib":
             # ✅ 流量校准深度逻辑

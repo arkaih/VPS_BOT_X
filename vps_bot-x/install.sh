@@ -1,6 +1,6 @@
 #!/bin/bash
-# VPS 遥控器 (Sentinel-X) 安装向导
-# 版本: V6.7 (优化面板状态显示)
+# -*- coding: utf-8 -*-
+# install.sh (V6.5.0 实验室优化版 - 适配 vps_bot-x)
 
 # 定义颜色
 GREEN='\033[0;32m'
@@ -11,7 +11,7 @@ NC='\033[0m'
 
 clear
 echo -e "${SKY}==============================================${NC}"
-echo -e "     VPS 遥控器 (Sentinel-X) 安装向导 V6.7 作者:thex    "
+echo -e "    VPS 遥控器 (Sentinel-X) 安装向导 V6.5    "
 echo -e "${SKY}==============================================${NC}"
 echo ""
 
@@ -23,7 +23,7 @@ fi
 
 # ✅ 路径定义
 SOURCE_DIR=$(cd $(dirname $0); pwd)
-TARGET_DIR="/root/vps_bot-x"
+TARGET_DIR="/opt/vps_bot-x"  # 默认安装目录，可根据需要修改
 
 echo -e "${GREEN}>>> [1/6] 检查系统环境...${NC}"
 
@@ -33,8 +33,6 @@ echo -e "${SKY}    系统版本: $(cat /etc/os-release | grep PRETTY_NAME | cut 
 echo -e "${SKY}    Python 版本: $PYTHON_VERSION${NC}"
 
 echo -e "${GREEN}>>> [2/6] 正在安装系统依赖...${NC}"
-# 增加 -qq 防止刷屏，增加 DEBIAN_FRONTEND 防止弹窗
-export DEBIAN_FRONTEND=noninteractive
 apt update -y > /dev/null 2>&1
 apt install -y python3 python3-pip curl nano git vnstat nethogs iptables net-tools > /dev/null 2>&1
 
@@ -42,7 +40,7 @@ apt install -y python3 python3-pip curl nano git vnstat nethogs iptables net-too
 systemctl enable vnstat > /dev/null 2>&1
 systemctl restart vnstat > /dev/null 2>&1
 
-# Docker 检查 (如有需要)
+# Docker 检查
 if ! command -v docker &> /dev/null; then
     echo -e "${YELLOW}警告: 未检测到 Docker，正在自动尝试安装...${NC}"
     curl -fsSL https://get.docker.com | sh > /dev/null 2>&1
@@ -52,33 +50,15 @@ fi
 
 echo -e "${GREEN}>>> [3/6] 同步代码并安装 Python 库...${NC}"
 
-# ✅ 智能代码同步逻辑 (兼容 Curl 安装)
-mkdir -p "$TARGET_DIR"
-if [ -f "$SOURCE_DIR/main.py" ] && [ "$SOURCE_DIR" != "$TARGET_DIR" ]; then
-    # 场景1: 用户 git clone 了代码，脚本和代码在一起
-    echo -e "${SKY}    正在从本地同步代码到 $TARGET_DIR...${NC}"
+# ✅ 代码同步逻辑：如果是从仓库安装，则复制到目标目录
+if [ "$SOURCE_DIR" != "$TARGET_DIR" ]; then
+    echo -e "${SKY}    正在同步代码到 $TARGET_DIR...${NC}"
+    mkdir -p "$TARGET_DIR"
     cp -r "$SOURCE_DIR"/* "$TARGET_DIR/"
-elif [ ! -f "$TARGET_DIR/main.py" ]; then
-    # 场景2: 用户只下载了 install.sh，需要去 GitHub 拉取
-    echo -e "${SKY}    正在从 GitHub 拉取最新代码...${NC}"
-    TEMP_DIR=$(mktemp -d)
-    # 克隆整个仓库
-    git clone --depth 1 https://github.com/MEILOI/VPS_BOT_X.git "$TEMP_DIR" > /dev/null 2>&1
-    # 只取 vps_bot-x 子目录
-    if [ -d "$TEMP_DIR/vps_bot-x" ]; then
-        cp -r "$TEMP_DIR/vps_bot-x/"* "$TARGET_DIR/"
-    else
-        echo -e "${RED}错误: 仓库结构不匹配 (未找到 vps_bot-x 目录)${NC}"
-        rm -rf "$TEMP_DIR"
-        exit 1
-    fi
-    rm -rf "$TEMP_DIR"
-else
-    echo -e "${GREEN}    ✓ 目标目录已有代码，执行增量更新${NC}"
 fi
 
 # 安装依赖
-pip3 install python-telegram-bot psutil requests netifaces schedule --break-system-packages > /dev/null 2>&1
+pip3 install python-telegram-bot psutil requests netifaces --break-system-packages > /dev/null 2>&1
 
 echo -e "${GREEN}>>> [4/6] 配置初始化...${NC}"
 CONFIG_FILE="/root/sentinel_config.json"
@@ -113,6 +93,7 @@ fi
 
 echo -e "${GREEN}>>> [5/6] 注册系统服务...${NC}"
 
+# 生成服务文件 (指向 vps_bot-x)
 cat > /etc/systemd/system/vpsbot.service <<EOF
 [Unit]
 Description=VPS Remote Controller Bot X
@@ -138,45 +119,31 @@ systemctl restart vpsbot
 
 echo -e "${GREEN}>>> [6/6] 安装快捷指令 'kk'...${NC}"
 
-# 🔥🔥🔥 重点修改部分：kk 脚本逻辑优化 🔥🔥🔥
 cat > /usr/bin/kk <<EOFKK
 #!/bin/bash
+# 控制台快捷脚本
 while true; do
     clear
-    # 获取实时状态
-    if systemctl is-active --quiet vpsbot; then
-        STATUS_TEXT="\033[0;32m● 运行中 (Running)\033[0m"
-    else
-        STATUS_TEXT="\033[0;31m● 已停止 (Stopped)\033[0m"
-    fi
-
     echo -e "\033[0;36m==============================\033[0m"
-    echo -e "     VPS 遥控器-X 控制台 作者:thex        "
-    echo -e "     当前状态: \${STATUS_TEXT}"
+    echo -e "    VPS 遥控器-X 控制台       "
     echo -e "\033[0;36m==============================\033[0m"
     echo -e "  [1] 启动  [2] 重启  [3] 停止"
     echo -e "  [4] 日志  [5] 配置  [0] 退出"
-    echo -e "  [6] 更新代码"
     read -p "请选择: " choice
     case \$choice in
-        1) systemctl start vpsbot; echo "正在启动..." ;;
-        2) systemctl restart vpsbot; echo "正在重启..." ;;
-        3) systemctl stop vpsbot; echo "正在停止..." ;;
+        1) systemctl start vpsbot ;;
+        2) systemctl restart vpsbot ;;
+        3) systemctl stop vpsbot ;;
         4) journalctl -u vpsbot -f -n 50 ;;
-        5) nano /root/sentinel_config.json ;;
-        6) bash <(curl -fsSL https://raw.githubusercontent.com/MEILOI/VPS_BOT_X/main/vps_bot-x/install.sh) ;;
+        5) nano /opt/vps_bot-x/sentinel_config.json ;;
         0) exit 0 ;;
-        *) echo "无效选择" ;;
     esac
-    
-    # 只有非日志、非退出操作时才暂停，为了让用户看到操作结果，并刷新状态
-    if [[ "\$choice" != "4" && "\$choice" != "6" && "\$choice" != "0" ]]; then
-        sleep 1
-    fi
+    read -p "按回车继续..."
 done
 EOFKK
 
 chmod +x /usr/bin/kk
 
 echo -e "${GREEN}🎉 安装完成！请在 TG 发送 /start 开始使用。${NC}"
-echo -e "${SKY}输入 'kk' 可随时呼出管理面板${NC}"
+echo -e "${SKY}代码目录: ${TARGET_DIR}${NC}"
+echo -e "${SKY}配置文件: ${CONFIG_FILE}${NC}"
