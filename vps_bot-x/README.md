@@ -266,12 +266,3 @@ sudo systemctl restart vpsbot
 - 添加适当的注释
 - 更新相关文档
 
-## 联系方式
-
-如有问题或建议，请通过以下方式联系：
-- GitHub Issues
-- Telegram: @your_username
-
----
-
-**提示**: 在生产环境部署前，请在测试环境充分测试所有功能。
